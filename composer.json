@@ -1,0 +1,21 @@
+{
+    "name": "robert/excel-styles",
+    "description": "Easily create excel sheets with styles",
+    "type": "library",
+    "require": {
+        "maatwebsite/excel": "^3.1"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Robert\\ExcelStyles\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Robert",
+            "email": "robert7.nelson@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}
