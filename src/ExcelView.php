@@ -158,7 +158,7 @@ class ExCell extends ExcelElement
 
     public function _layout(&$arr, $excel)
     {
-        array_push($arr, $this->elements);
+        array_push($arr, is_callable($this->elements) ? $this->elements() : $this->elements;
         for($i=1; $i<$this->n; $i++)
             array_push($arr, null);
         $excel->c_col = $this->n - 1 + $excel->c_col;
@@ -220,6 +220,48 @@ abstract class ExcelView implements WithStyles, FromArray
     public function styles(Worksheet $sheet)
     {
         $this->_layout->render($sheet, $this->_styles);
+    }
+
+    private function iter_elements(&$collect, $el, $cond)
+    {
+        if($cond($el) {
+            array_push($collect, $el);
+        }
+        if(is_subclass_of($el, ExcelElement::class)) {
+            foreach($el->elements as $element) {
+                $this->iter_elements($collect, $element, $cond);
+            }
+        }
+    }
+
+    protected function el($style=null, $type=null)
+    {
+        $r = $this->els($style, $type);
+        if(count($r))
+            return $r[0];
+        return null;
+    }
+
+    protected function els($style=null, $type=null)
+    {
+        $arr = [];
+        $this->iter_elements($arr, $this->_layout, function($e) use ($style, $type) {
+            if($type && get_class($e) != $type) {
+                return false;
+            }
+            if($style) {
+                if(is_array($e->styles)) {
+                    if(!is_array($style))
+                        $style = [$style];
+                    if(array_diff($style, $e->styles)
+                        return false;
+                } else if($style != $e->styles)
+                    return false;
+                }
+            }
+            return true;
+        })
+        return $arr;
     }
 
     public function array(): array
