@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\Excel;
+namespace Robert-N7\ExcelStyles;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithStyles;

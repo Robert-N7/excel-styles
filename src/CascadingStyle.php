@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\Excel;
+namespace Robert-N7\ExcelStyles;
 
 class CascadingStyle implements ExcelStyle
 {
