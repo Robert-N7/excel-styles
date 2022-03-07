@@ -1,5 +1,5 @@
 {
-    "name": "robert/excel-styles",
+    "name": "robert-n7/excel-styles",
     "description": "Easily create excel sheets with styles",
     "type": "library",
     "require": {
@@ -8,7 +8,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Robert\\ExcelStyles\\": "src/"
+            "Robert-N7\\ExcelStyles\\": "src/"
         }
     },
     "authors": [
