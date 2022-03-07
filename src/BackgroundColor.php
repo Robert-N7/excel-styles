@@ -1,6 +1,6 @@
 <?php
 
-namespace Robert-N7\ExcelStyles;
+namespace RobertN7\ExcelStyles;
 
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
