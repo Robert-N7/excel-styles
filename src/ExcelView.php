@@ -10,9 +10,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 abstract class ExcelElement
 {
     public $elements;
-    protected $styles;
-    protected $start;
-    protected $end;
+    public $styles;
+    public $start;
+    public $end;
     private $_style;
 
     private static function normalizeElement($element) {
@@ -158,7 +158,7 @@ class ExCell extends ExcelElement
 
     public function _layout(&$arr, $excel)
     {
-        array_push($arr, is_callable($this->elements) ? $this->elements() : $this->elements;
+        array_push($arr, $this);
         for($i=1; $i<$this->n; $i++)
             array_push($arr, null);
         $excel->c_col = $this->n - 1 + $excel->c_col;
@@ -224,10 +224,10 @@ abstract class ExcelView implements WithStyles, FromArray
 
     private function iter_elements(&$collect, $el, $cond)
     {
-        if($cond($el) {
+        if($cond($el)) {
             array_push($collect, $el);
         }
-        if(is_subclass_of($el, ExcelElement::class)) {
+        if(is_subclass_of($el, ExcelElement::class) && is_array($el->elements)) {
             foreach($el->elements as $element) {
                 $this->iter_elements($collect, $element, $cond);
             }
@@ -253,14 +253,33 @@ abstract class ExcelView implements WithStyles, FromArray
                 if(is_array($e->styles)) {
                     if(!is_array($style))
                         $style = [$style];
-                    if(array_diff($style, $e->styles)
+                    if(array_diff($style, $e->styles))
                         return false;
-                } else if($style != $e->styles)
+                } else if($style != $e->styles) {
                     return false;
                 }
             }
             return true;
-        })
+        });
+        return $arr;
+    }
+
+    private function resolveArray($_arrayed)
+    {
+        $arr = [];
+        foreach($_arrayed as $row) {
+            $new_row = [];
+            foreach($row as $col) {
+                foreach($col as $v) {
+                    if(is_callable($v->elements)) {
+                        array_push($new_row, call_user_func($v->elements, $v));
+                    } else {
+                        array_push($new_row, $v->elements);
+                    }
+                }
+            }
+            array_push($arr, [$new_row]);
+        }
         return $arr;
     }
 
@@ -271,6 +290,7 @@ abstract class ExcelView implements WithStyles, FromArray
         $this->_c_row = null;
         $this->_layout = $this->layout();
         $this->_layout->layout($this->_arrayed, $this);
+        $this->_arrayed = $this->resolveArray($this->_arrayed);
         return $this->_arrayed;
     }
 }

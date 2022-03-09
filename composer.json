@@ -8,7 +8,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Robert-N7\\ExcelStyles\\": "src/"
+            "RobertN7\\ExcelStyles\\": "src/"
         }
     },
     "authors": [
@@ -17,5 +17,8 @@
             "email": "robert7.nelson@gmail.com"
         }
     ],
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "require-dev": {
+        "phpunit/phpunit": "^9"
+    }
 }
