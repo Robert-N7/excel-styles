@@ -11,4 +11,9 @@ class CascadingStyle implements ExcelStyle
                $this->applyTo($sheet, $el);
         }
     }
+
+    public function __toString(): string
+    {
+        return 'cascading';
+    }
 }

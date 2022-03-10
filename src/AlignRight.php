@@ -2,16 +2,16 @@
 
 namespace RobertN7\ExcelStyles;
 
-class Bold extends CascadingStyle implements ExcelStyle
+class AlignRight implements ExcelStyle
 {
-
     public function applyTo($sheet, ExcelElement $element)
     {
-        $element->getStyle($sheet)->getFont()->setBold(true);
+        $element->getStyle($sheet)->getAlignment()->setHorizontal('right');
     }
 
     public function __toString(): string
     {
-        return 'bold';
+        return 'align-right';
     }
+
 }

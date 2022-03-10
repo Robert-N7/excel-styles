@@ -6,6 +6,11 @@ use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Excel;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Exception;
+
+class ExcelViewException extends Exception
+{
+}
 
 abstract class ExcelElement
 {
@@ -15,8 +20,28 @@ abstract class ExcelElement
     public $end;
     private $_style;
 
-    private static function normalizeElement($element) {
+    public function end_row()
+    {
+        preg_match('/\d+/', $this->end, $matches);
+        return $matches[0];
+    }
 
+    public function end_col()
+    {
+        preg_match('/\D+/', $this->end, $matches);
+        return $matches[0];
+    }
+
+    public function start_row()
+    {
+        preg_match('/\d+/', $this->start, $matches);
+        return $matches[0];
+    }
+
+    public function start_col()
+    {
+        preg_match('/\D+/', $this->start, $matches);
+        return $matches[0];
     }
 
     protected function _layout(&$arr, $excel)
@@ -68,6 +93,7 @@ abstract class ExcelElement
         $this->start = chr(65 + $excel->c_col) . $excel->c_row + 1;
         $max = $this->_layout($arr, $excel);
         $this->end = self::getColumn($max) . $excel->c_row + 1;
+
         return $max;
     }
 
@@ -82,7 +108,8 @@ abstract class ExcelElement
     private function __applyStyle($style, $sheet, $styles)
     {
         if(is_string($style)) {
-            $this->__applyStyle($styles[$style], $sheet, $styles);
+            if(array_key_exists($style, $styles))
+                $this->__applyStyle($styles[$style], $sheet, $styles);
         }
         else if(is_array($style)) {
             foreach ($style as $s)
@@ -121,6 +148,9 @@ class ExRow extends ExcelElement
 
     public function __construct($styles, $elements, $n)
     {
+        if(is_array($elements) and !count($elements)) {
+            $elements = [new ExCell([], '', 1)];
+        }
         parent::__construct($styles, $elements);
         $this->n=$n;
         $this->row_data = [[]];
@@ -129,39 +159,55 @@ class ExRow extends ExcelElement
     public function _layout(&$arr, $excel)
     {
         $excel->_c_row = $this;
-        $max = parent::_layout($this->row_data[0], $excel);
-        for($i=1; $i < $this->n; $i++)
-            array_push($this->row_data, []);
+        if(!count($this->row_data[0]))
+            parent::_layout($this->row_data[0], $excel);
         array_push($arr, $this->row_data);
-        $excel->c_row = $this->n - 1 + $excel->c_row;
         $excel->_advance_row = true;
         $excel->_c_row = null;
-        return $max;
+
+        $this->n -= 1;
+        if($this->n)
+            $this->layout($arr, $excel);
+        return count($this->row_data[0]) - 1;
     }
 }
 
 class ExCell extends ExcelElement
 {
     private int $n;
+    private $next;
 
     public function __construct($styles, $elements, $n)
     {
+        if(is_array($elements) && !count($elements)) {
+            $elements = '';
+        }
+        if(is_subclass_of($elements, ExcelElement::class) || is_array($elements)) {
+            print_r($elements);
+            throw new ExcelViewException('Cell value must be simple type or function');
+        }
         parent::__construct($styles, $elements);
         $this->n = $n;
+        $this->next = null;
     }
 
     public function layout(&$arr, $excel) {
         $max = parent::layout($arr, $excel);
-        $excel->c_col = $this->n + $excel->c_col;
+        $excel->c_col = 1 + $excel->c_col;
+        if($this->n > 1) {
+            $this->next = [];
+            for($i=1; $i<$this->n; $i++) {
+                $el = new ExCell($this->styles, $this->elements, 1);
+                array_push($this->next, $el);
+                $max = $el->layout($arr, $excel);
+            }
+        }
         return $max;
     }
 
     public function _layout(&$arr, $excel)
     {
         array_push($arr, $this);
-        for($i=1; $i<$this->n; $i++)
-            array_push($arr, null);
-        $excel->c_col = $this->n - 1 + $excel->c_col;
         return $excel->c_col;
     }
 }
@@ -171,10 +217,26 @@ class ExDiv extends ExcelElement
 
 }
 
+class ExHead extends ExCell
+{
+    public function __construct($styles, $elements, $n)
+    {
+        if(!is_array($styles)) {
+            $styles = $styles == null ? [new Bold()] : [new Bold(), $styles];
+        }
+        parent::__construct($styles, $elements, $n);
+    }
+}
+
+
 abstract class ExcelView implements WithStyles, FromArray
 {
-    public int $c_row;
-    public int $c_col;
+    // These variables are used in layout, don't use them
+    public int $c_row;  // Current row number
+    public int $c_col;  // Current col number
+    public $_c_row;  // Current ExRow
+    public $__advance_row; // should advance?
+
     private $_layout;
     private array $_arrayed;
     private array $_styles;
@@ -198,6 +260,24 @@ abstract class ExcelView implements WithStyles, FromArray
     protected function td($styles=[], $data=[], $n=1)
     {
         return new Excell($styles, $data, $n);
+    }
+
+    protected function th($styles=[], $data=[], $n=1)
+    {
+        return new ExHead($styles, $data, $n);
+    }
+
+    protected function sum($e, $rows=null, $cols=null)
+    {
+        return function($e) use ($rows, $cols) {
+            if(!$rows) {
+                $rows = [$e->start_row(), $e->end_row()];
+            }
+            if(!$cols) {
+                $cols = [$e->start_col(), $e->end_col()];
+            }
+            return '=SUM(' . $cols[0] . $rows[0] . ':' . $cols[1] . $rows[1] . ')';
+        };
     }
 
     protected function table($styles=[], $data=[])
@@ -272,9 +352,13 @@ abstract class ExcelView implements WithStyles, FromArray
             foreach($row as $col) {
                 foreach($col as $v) {
                     if(is_callable($v->elements)) {
-                        array_push($new_row, call_user_func($v->elements, $v));
+                        $el = call_user_func($v->elements, $v);
+                        array_push($new_row, $el);
                     } else {
-                        array_push($new_row, $v->elements);
+                        if(is_array($v->elements) && !count($v->elements))
+                            array_push($new_row, null);
+                        else
+                            array_push($new_row, $v->elements);
                     }
                 }
             }

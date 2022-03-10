@@ -9,7 +9,7 @@ class Border implements ExcelStyle
         $this->border = ['borders' => [
             'outline' => [
                 'borderStyle' => $border_style,
-                'color' => ['argb' => 'FF' . $rgb],
+                'color' => ['argb' => (strlen($rgb) > 6 ? $rgb : 'FF' . $rgb)],
             ]
         ]];
     }
@@ -18,4 +18,11 @@ class Border implements ExcelStyle
     {
         $element->getStyle($sheet)->applyFromArray($this->border);
     }
+
+    public function __toString(): string
+    {
+        $outline = $this->border['borders']['outline'];
+        return 'border: ' . $outline['borderStyle'] . ' ' . $outline['color']['argb'];
+    }
+
 }
