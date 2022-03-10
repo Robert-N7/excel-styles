@@ -35,6 +35,14 @@ class GroceryList extends ExcelView
         ];
     }
 
+    protected function init_style_ranges()
+    {
+        $price_range = $this->price_col->start_col() . $this->body->start_row()
+            . ':' . $this->price_col->start_col() . $this->body->end_row();
+        return [
+             $price_range => '$',
+        ];
+    }
 
     private function layout_data($item, $total_func)
     {
@@ -42,7 +50,7 @@ class GroceryList extends ExcelView
             $this->th(data: $item['name']),
             $item['quantity'],
             $this->td(n: 2),
-            $this->td('$', $item['price']),
+            $this->td(data: $item['price']),
             $total = $this->td(data: $total_func),
             $this->td('%', function($e) use($total) {
                 return '=' .$total->start . '/' .  $this->el('grand_total')->start;
@@ -53,10 +61,11 @@ class GroceryList extends ExcelView
     protected function layout()
     {
         $total_func = function($e) {
-           return '=B' . $e->start_row() . '*E'.$e->start_row();
+           return '=' . $this->qty_col->start_col() . $e->start_row()
+                . '*' . $this->price_col->start_col() . $e->start_row();
         };
         $total_cols = function($e) {
-           return $this->sum($e, rows: [$this->body->start_row(), $this->body->end_row()])($e);
+           return $this->sum($e, rows: [$this->body->start_row(), $this->body->end_row()]);
         };
         $body_layout = [];
         foreach($this->groceries as $item)
@@ -66,9 +75,9 @@ class GroceryList extends ExcelView
             $this->tr(n: 5),
             $this->header = $this->tr('Header', [
                 'Name',
-                'Quantity',
+                $this->qty_col = $this->td(data: 'Quantity'),
                 $this->td(n: 2),
-                'Price',
+                $this->price_col = $this->td(data: 'Price'),
                 $this->th('th-total', 'Total'),
                 'Percentage of total',
             ]),
@@ -81,7 +90,7 @@ class GroceryList extends ExcelView
                 $total_cols,
                 $this->td('grand_total', function($e) {
                     $body = $this->el('Body');
-                    return $this->sum($e, [$body->start_row(), $body->end_row()])($e);
+                    return $this->sum($e, [$body->start_row(), $body->end_row()]);
                 })
             ]),
         ]);

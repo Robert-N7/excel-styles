@@ -228,7 +228,15 @@ class ExHead extends ExCell
     }
 }
 
-
+/* A class for displaying complex excel sheets with styles, formats, and formulas.
+     It will help to think of this in terms of html layouts, where the layout consists of nested elements.
+     You can break the table into sections and apply styles to them.
+     Unlike other php spreadsheets, this layout is calculated on demand,
+     Which means you can easily make changes such as adding a row or column
+     without it completely messing up your code.
+     Just remember to use the elements as guideposts instead of hard-coded values.
+     See GroceryList for an example.
+ */
 abstract class ExcelView implements WithStyles, FromArray
 {
     // These variables are used in layout, don't use them
@@ -238,6 +246,7 @@ abstract class ExcelView implements WithStyles, FromArray
     public $__advance_row; // should advance?
 
     private $_layout;
+    private $_sheet;
     private array $_arrayed;
     private array $_styles;
 
@@ -245,12 +254,26 @@ abstract class ExcelView implements WithStyles, FromArray
     {
         $this->c_row = 0;
         $this->c_col = 0;
-        $this->_layout = null;
+        $this->_layout = $this->_sheet = null;
         $this->_arrayed = [];
     }
 
+    // return layout using excel elements
+    // You can think of it like html
     abstract protected function layout();
+
+    // Expects array of style mapping
+    // It's like a style sheet
+    // ie. [ 'cool_style' => [new Bold(), new AlignCenter()] ]
     abstract protected function init_styles();
+
+    // Expects array of ranges => styles, override with your own
+    // ie. [ 'A1:C1' => 'cool_style' ]
+    protected function init_style_ranges()
+    {
+        return [];
+    }
+
 
     protected function tr($styles=[], $data=[], $n=1)
     {
@@ -269,15 +292,13 @@ abstract class ExcelView implements WithStyles, FromArray
 
     protected function sum($e, $rows=null, $cols=null)
     {
-        return function($e) use ($rows, $cols) {
-            if(!$rows) {
-                $rows = [$e->start_row(), $e->end_row()];
-            }
-            if(!$cols) {
-                $cols = [$e->start_col(), $e->end_col()];
-            }
-            return '=SUM(' . $cols[0] . $rows[0] . ':' . $cols[1] . $rows[1] . ')';
-        };
+        if(!$rows) {
+            $rows = [$e->start_row(), $e->end_row()];
+        }
+        if(!$cols) {
+            $cols = [$e->start_col(), $e->end_col()];
+        }
+        return '=SUM(' . $cols[0] . $rows[0] . ':' . $cols[1] . $rows[1] . ')';
     }
 
     protected function table($styles=[], $data=[])
@@ -297,9 +318,23 @@ abstract class ExcelView implements WithStyles, FromArray
         return new ExDiv($styles, $data);
     }
 
+    public function style($range, $styles)
+    {
+        if(!is_array($range))
+            $range = explode(':', $range);
+        $cell = new ExDiv($styles, []);
+        $cell->start = $range[0];
+        $cell->end = count($range) > 1 ? $range[1] : $range[0];
+        $cell->render($this->_sheet, $this->_styles);
+    }
+
     public function styles(Worksheet $sheet)
     {
+        $this->_sheet = $sheet;
         $this->_layout->render($sheet, $this->_styles);
+        foreach($this->init_style_ranges() as $range => $styles) {
+            $this->style($range, $styles);
+        }
     }
 
     private function iter_elements(&$collect, $el, $cond)
