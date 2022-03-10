@@ -16,9 +16,19 @@ abstract class ExcelElement
 {
     public $elements;
     public $styles;
-    public $start;
-    public $end;
+    public string $start;
+    public string $end;
     private $_style;
+
+    public static function range_from($start, $end)
+    {
+        return $start == $end ? $start : $start . ':' . $end;
+    }
+
+    public function range()
+    {
+        return self::range_from($this->start, $this->end);
+    }
 
     public function end_row()
     {
@@ -93,7 +103,6 @@ abstract class ExcelElement
         $this->start = chr(65 + $excel->c_col) . $excel->c_row + 1;
         $max = $this->_layout($arr, $excel);
         $this->end = self::getColumn($max) . $excel->c_row + 1;
-
         return $max;
     }
 
@@ -134,8 +143,7 @@ abstract class ExcelElement
     public function getStyle($sheet)
     {
         if(!$this->_style)
-            $this->_style = $sheet->getStyle($this->start == $this->end ? $this->start
-                : $this->start . ':' . $this->end);
+            $this->_style = $sheet->getStyle($this->range());
         return $this->_style;
     }
 
@@ -274,6 +282,20 @@ abstract class ExcelView implements WithStyles, FromArray
         return [];
     }
 
+    // Get range by Merging element e_rows rows with element e_cols columns
+    // returns string in Excel range format (ie. A1:B2)
+    protected function range_merge(ExcelElement $e_rows, ExcelElement $e_cols): string
+    {
+        $start = $e_cols->start_col() . $e_rows->start_row();
+        $end = $e_cols->end_col() . $e_rows->end_row();
+        return ExcelElement::range_from($start, $end);
+    }
+
+    // Extend range from $start->start to $end->end
+    protected function range_extend(ExcelElement $start, ExcelElement $end)
+    {
+        return ExcelElement::range_from($start->start, $end->end);
+    }
 
     protected function tr($styles=[], $data=[], $n=1)
     {

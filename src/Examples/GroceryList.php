@@ -37,10 +37,9 @@ class GroceryList extends ExcelView
 
     protected function init_style_ranges()
     {
-        $price_range = $this->price_col->start_col() . $this->body->start_row()
-            . ':' . $this->price_col->start_col() . $this->body->end_row();
         return [
-             $price_range => '$',
+             $this->range_merge($this->body, $this->price_col) => '$',
+             $this->range_extend($this->qty_col, $this->price_col) => new Italic(),
         ];
     }
 
