@@ -10,7 +10,7 @@ class Format implements ExcelStyle
     private $format;
     // Custom formats - for others see NumberFormat
     private static array $formats = [
-        '$' => NumberFormat::FORMAT_CURRENCY_USD,
+        '$' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
         '%' => NumberFormat::FORMAT_PERCENTAGE,
         '€' => NumberFormat::FORMAT_CURRENCY_EUR,
         'float' => NumberFormat::FORMAT_NUMBER_00,
