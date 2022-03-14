@@ -4,10 +4,19 @@ namespace RobertN7\ExcelStyles;
 
 class Border implements ExcelStyle
 {
-    public function __construct($border_style = 'thick', $rgb = '000000')
+    /*
+    *   $border_style: none, dashDot, dashDotDot, dashed,
+            dotted, double, hair, medium, mediumDashDot,
+            mediumDashDotDot, mediumDashed, slantDashDot,
+            thick, thin;
+    *   $rgb: RGB color
+    *   $direction: bottom, diagonal, diagonalDirection, left, right, top,
+    *                    outline, inside, vertical, horizontal, allBorders
+    */
+    public function __construct($border_style = 'thick', $rgb = '000000', $direction='outline')
     {
         $this->border = ['borders' => [
-            'outline' => [
+            $direction => [
                 'borderStyle' => $border_style,
                 'color' => ['argb' => (strlen($rgb) > 6 ? $rgb : 'FF' . $rgb)],
             ]
@@ -21,8 +30,12 @@ class Border implements ExcelStyle
 
     public function __toString(): string
     {
-        $outline = $this->border['borders']['outline'];
-        return 'border: ' . $outline['borderStyle'] . ' ' . $outline['color']['argb'];
+        $s = 'border: [';
+        foreach($this->border['borders'] as $style => $border) {
+            $s .= $style . ' => ' . $border['borderStyle']
+                . ' rgb('.substr($border['color']['argb'], 2).'),';
+        }
+        return $s . ']';
     }
 
 }
